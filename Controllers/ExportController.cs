@@ -86,11 +86,14 @@ namespace SalesOrder.Controllers
                     }
                     row--;
                     worksheet.Range(2, 3, row, 3).Style.NumberFormat.Format = "dd/M/yyyy";
-                    worksheet.Range(2, 5, row, 5).Style.NumberFormat.Format = "_-* #.##0,00_-;-* #.##0,00_-;_-* \"-\"??_-;_-@_-";
+                    var totalPriceRange = worksheet.Range(2, 5, row, 5);
+                    totalPriceRange.Style.NumberFormat.Format = "_-* #.##0,00_-;-* #.##0,00_-;_-* \"-\"??_-;_-@_-";
+                    totalPriceRange.AddConditionalFormat().DataBar(XLColor.LightSkyBlue);
+                    worksheet.Range(2, 6, row, 6).AddConditionalFormat().DataBar(XLColor.CadetBlue);
                     var rangeRows = worksheet.Range(2, 1, row, 6);
                     rangeRows.Style.Border.InsideBorder = XLBorderStyleValues.Thin;
                     rangeRows.Style.Border.OutsideBorder = XLBorderStyleValues.Medium;
-                    
+                    worksheet.Range(1, 1, row, 6).SetAutoFilter();
                     worksheet.Columns().AdjustToContents();
 
                     using (var stream = new MemoryStream())
