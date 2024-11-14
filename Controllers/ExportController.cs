@@ -1,6 +1,6 @@
+using ClosedXML.Excel;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using ClosedXML.Excel;
 using SalesOrder.Data;
 using SalesOrder.Models;
 
@@ -16,12 +16,12 @@ namespace SalesOrder.Controllers
             _context = context;
         }
 
-        public async Task<IActionResult> ExportToExcel(string keyword, DateTime? orderDate, int page = 1, int pageSize = 10)
+        public async Task<IActionResult> ExportToExcel(string keyword, DateTime? orderDate)
         {
             try
             {
                 var query = _context.SoOrders
-                    .Include(o => o.Customer)
+                    .Include(o => o.Customer)   
                     .AsQueryable();
 
                 if (!string.IsNullOrEmpty(keyword))
@@ -34,18 +34,20 @@ namespace SalesOrder.Controllers
                     query = query.Where(o => o.OrderDate.Date == orderDate.Value.Date);
                 }
 
-                var totalItems = await query.CountAsync();
-                var totalPages = (int)Math.Ceiling(totalItems / (double)pageSize);
-                page = Math.Min(Math.Max(1, page), totalPages);
+                //var totalItems = await query.CountAsync();
+                //var totalPages = (int)Math.Ceiling(totalItems / (double)pageSize);
+                //page = Math.Min(Math.Max(1, page), totalPages);
 
                 var orders = await query
-                    .Skip((page - 1) * pageSize)
-                    .Take(pageSize)
+                    //.Skip((page - 1) * pageSize)
+                    //.Take(pageSize)
                     .Select(o => new OrderExportModel
                     {
-                        OrderId = o.SoOrderId,
+                        OrderNumber = o.OrderNo,
                         OrderDate = o.OrderDate,
-                        CustomerName = o.Customer.CustomerName ?? string.Empty
+                        CustomerName = o.Customer.CustomerName ?? string.Empty,
+                        TotalPrice = o.Items.Sum(i=>i.Quantity * i.Price),
+                        TotalItem = o.Items.Sum(i=>i.Quantity)
                     })
                     .ToListAsync();
 
@@ -58,25 +60,48 @@ namespace SalesOrder.Controllers
                     worksheet.Cell(1, 2).Value = "Sales Order";
                     worksheet.Cell(1, 3).Value = "Order Date";
                     worksheet.Cell(1, 4).Value = "Customer";
+                    worksheet.Cell(1, 5).Value = "Total Price";
+                    worksheet.Cell(1, 6).Value = "Total Item";
 
+                    var rangeHeader = worksheet.Range(1, 1, 1, 6);
+
+                    rangeHeader.Style.Border.InsideBorder = XLBorderStyleValues.Medium;
+                    rangeHeader.Style.Border.OutsideBorder = XLBorderStyleValues.Medium;
                     
                     int row = 2;
                     foreach (var order in orders)
                     {
                         worksheet.Cell(row, 1).Value = row - 1;
-                        worksheet.Cell(row, 2).Value = order.OrderId;
-                        worksheet.Cell(row, 3).Value = order.OrderDate.ToString("yyyy-MM-dd");
+                        worksheet.Cell(row, 2).Value = order.OrderNumber;
+                        worksheet.Cell(row, 3).Value = order.OrderDate;
                         worksheet.Cell(row, 4).Value = order.CustomerName;
+                        worksheet.Cell(row, 5).Value = order.TotalPrice;
+                        worksheet.Cell(row, 6).Value = order.TotalItem;
+                        if (row%2==0)
+                        {
+                            worksheet.Range(row, 1, row, 6).Style.Fill.SetBackgroundColor(XLColor.AshGrey);
+                        }
+                        
                         row++;
                     }
-
+                    row--;
+                    worksheet.Range(2, 3, row, 3).Style.NumberFormat.Format = "dd/M/yyyy";
+                    worksheet.Range(2, 5, row, 5).Style.NumberFormat.Format = "_-* #.##0,00_-;-* #.##0,00_-;_-* \"-\"??_-;_-@_-";
+                    var rangeRows = worksheet.Range(2, 1, row, 6);
+                    rangeRows.Style.Border.InsideBorder = XLBorderStyleValues.Thin;
+                    rangeRows.Style.Border.OutsideBorder = XLBorderStyleValues.Medium;
+                    
                     worksheet.Columns().AdjustToContents();
 
                     using (var stream = new MemoryStream())
                     {
                         workbook.SaveAs(stream);
                         var content = stream.ToArray();
-                        return File(content, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", $"SalesOrders_Export_{DateTime.Now:yyyyMMddHHmmss}.xlsx");
+                        return File(content, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                            $"SalesOrders_Export_{DateTime.Now:yyyyMMddHHmmss}" +
+                            (string.IsNullOrEmpty(keyword)?"":"_"+keyword) +
+                            (orderDate.HasValue?"_"+orderDate.Value.ToString("yyyyMMdd"):"")+
+                            $".xlsx");
                     }
                 }
             }
