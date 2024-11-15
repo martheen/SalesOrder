@@ -100,9 +100,17 @@ namespace SalesOrder.Controllers
                     var fieldTotalItem = table.Field(nameof(OrderExportModel.Total_Item));
 
                     fieldTotalItem.TotalsRowFunction = XLTotalsRowFunction.Sum;
+                    var totalItemCells = fieldTotalItem.DataCells;
+                    worksheet.Range(totalItemCells.First(), totalItemCells.Last()).AddConditionalFormat()
+                        .DataBar(XLColor.BrightTurquoise);
 
                     var fieldTotalPrice = table.Field(nameof(OrderExportModel.Total_Price));
                     fieldTotalPrice.TotalsRowFunction = XLTotalsRowFunction.Sum;
+                    var totalPriceCells = fieldTotalPrice.DataCells;
+                    worksheet.Range(totalPriceCells.First(), totalPriceCells.Last()).AddConditionalFormat()
+                        .DataBar(XLColor.BrightGreen);
+
+
                     int rowNumber = 1;
                     foreach (var item in table.Field(nameof(OrderExportModel.No)).DataCells)
                     {
