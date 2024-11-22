@@ -14,7 +14,7 @@ namespace SalesOrder.Controllers
         public async Task<IActionResult> Index(string keyword, DateTime? orderDate, int pageNumber = 1)
         {
             int pageSize = 5; 
-            var query = _orderRepository.GetOrdersQueryable(keyword, orderDate);
+            var query = _orderRepository.GetOrdersQueryable(keyword, orderDate).OrderByDescending(x=>x.OrderDate);
             var paginatedOrders = await PaginatedList<OrderDto>.CreateAsync(query, pageNumber, pageSize);
 
             ViewBag.Keyword = keyword;

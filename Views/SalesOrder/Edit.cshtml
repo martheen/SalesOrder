@@ -112,8 +112,8 @@
                           </td>
                           <td>${item.itemName}</td>
                           <td>${item.quantity}</td>
-                          <td>${item.price.toFixed(2)}</td>
-                          <td>${(item.quantity * item.price).toFixed(2)}</td>
+                          <td>Rp. ${item.price.toLocaleString('id-ID',{minimumFractionDigits:2})}</td>
+                          <td>Rp. ${(item.quantity * item.price).toLocaleString('id-ID',{minimumFractionDigits:2})}</td>
                       </tr>
                   `);
               });
@@ -139,9 +139,10 @@
 
             function updateTotals() {
                 var totalItem = items.reduce((sum, item) => sum + item.quantity, 0);
+                var totalUnique = items.length;
                 var totalAmount = items.reduce((sum, item) => sum + (item.quantity * item.price), 0);
-                $('#totalItem').text(totalItem);
-                $('#totalAmount').text(totalAmount.toFixed(2));
+                $('#totalItem').text(totalItem + ' of '+totalUnique);
+                $('#totalAmount').text('Rp. '+totalAmount.toFixed(2));
             }
 
             $('#addItemBtn').click(function() {
